@@ -5,7 +5,7 @@ const ITEMS = [
   '14th March 2026 — ADL-03 & 04, SMV Block, 6th Floor',
   'Prize Pool ₹20,000',
   '18-Hour Hackathon Challenge',
-  'Organised by Finite Loop Women\'s Community',
+  'Organised by FLWC',
 ];
 
 export default function Ticker() {
