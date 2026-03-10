@@ -22,6 +22,8 @@ export default function AdminDrawer({ open, onClose }) {
   const [loggedIn,  setLoggedIn]  = useState(false);
   const [password,  setPassword]  = useState('');
   const [error,     setError]     = useState(false);
+  const [customH,   setCustomH]   = useState('');
+  const [customM,   setCustomM]   = useState('');
   const pwdRef = useRef(null);
 
   const { status, startTimer, pauseTimer, stopTimer, resetTimer } = useTimerContext();
@@ -116,10 +118,36 @@ export default function AdminDrawer({ open, onClose }) {
               <div className="admin-status-val">{statusMap[status] || statusMap.idle}</div>
             </div>
 
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label>Custom Time (Optional)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="number"
+                  placeholder="Hours (e.g. 18)"
+                  min="0"
+                  value={customH}
+                  onChange={e => setCustomH(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <input
+                  type="number"
+                  placeholder="Mins"
+                  min="0"
+                  max="59"
+                  value={customM}
+                  onChange={e => setCustomM(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
+            </div>
+
             <div className="admin-controls">
               <button
                 className="admin-btn btn-start"
-                onClick={startTimer}
+                onClick={() => {
+                  const customSecs = (parseInt(customH, 10) || 0) * 3600 + (parseInt(customM, 10) || 0) * 60;
+                  startTimer(customSecs > 0 ? customSecs : undefined);
+                }}
                 disabled={status === 'running' || status === 'ended'}
               >
                 {status === 'paused' ? '▶ Resume Timer' : '▶ Start Timer'}
@@ -140,9 +168,12 @@ export default function AdminDrawer({ open, onClose }) {
               </button>
               <button
                 className="admin-btn btn-reset"
-                onClick={resetTimer}
+                onClick={() => {
+                  const customSecs = (parseInt(customH, 10) || 0) * 3600 + (parseInt(customM, 10) || 0) * 60;
+                  resetTimer(customSecs > 0 ? customSecs : undefined);
+                }}
               >
-                ↺ Reset to 18h
+                ↺ Reset Timer
               </button>
             </div>
 

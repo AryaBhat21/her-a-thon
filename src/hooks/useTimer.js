@@ -33,6 +33,7 @@ const DEFAULT_STATE = {
   status:    'idle',
   endAt:     null,
   remaining: TOTAL_SECONDS,
+  totalSecs: TOTAL_SECONDS,
 };
 
 export function useTimer() {
@@ -87,34 +88,43 @@ export function useTimer() {
   const writeState = useCallback((newState) =>
     set(ref(db, TIMER_PATH), newState), []);
 
-  const startTimer = useCallback(() => {
-    // If paused: resume from where it left off. Otherwise: fresh 18h.
-    const secs = fbState.status === 'paused'
-      ? (fbState.remaining ?? TOTAL_SECONDS)
-      : TOTAL_SECONDS;
+  const startTimer = useCallback((customSecs) => {
+    // If paused: resume from where it left off. Otherwise: use customSecs or previous total or fresh 18h.
+    const isPaused = fbState.status === 'paused';
+    const activeTotal = customSecs || fbState.totalSecs || TOTAL_SECONDS;
+    const secs = isPaused ? (fbState.remaining ?? activeTotal) : activeTotal;
+    
     return writeState({
       status:    'running',
       endAt:     Date.now() + secs * 1000,
       remaining: secs,
+      totalSecs: activeTotal,
     });
   }, [fbState, writeState]);
 
   const pauseTimer = useCallback(() => {
     if (fbState.status !== 'running') return;
     const rem = Math.max(0, Math.round((fbState.endAt - Date.now()) / 1000));
-    return writeState({ status: 'paused', endAt: null, remaining: rem });
+    return writeState({ status: 'paused', endAt: null, remaining: rem, totalSecs: fbState.totalSecs || TOTAL_SECONDS });
   }, [fbState, writeState]);
 
   const stopTimer = useCallback(() =>
-    writeState({ status: 'ended', endAt: null, remaining: 0 }), [writeState]);
+    writeState({ status: 'ended', endAt: null, remaining: 0, totalSecs: fbState.totalSecs || TOTAL_SECONDS }), [fbState.totalSecs, writeState]);
 
-  const resetTimer = useCallback(() =>
-    writeState(DEFAULT_STATE), [writeState]);
+  const resetTimer = useCallback((customSecs) => {
+    const secs = customSecs || TOTAL_SECONDS;
+    return writeState({
+      status: 'idle',
+      endAt: null,
+      remaining: secs,
+      totalSecs: secs,
+    });
+  }, [writeState]);
 
   return {
     status:     fbState.status,
     remaining:  displayRemaining,
-    totalSecs:  TOTAL_SECONDS,
+    totalSecs:  fbState.totalSecs || TOTAL_SECONDS,
     startTimer,
     pauseTimer,
     stopTimer,
