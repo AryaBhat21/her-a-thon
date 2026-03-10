@@ -4,7 +4,7 @@ export default function Footer() {
     <footer className="site-footer">
       <p>
         <strong>Her-a-thon</strong> · Organised by{' '}
-        <strong>Finite Loop Women Community</strong> · NMAM Institute of Technology
+        <strong>Finite Loop Women's Community</strong> · NMAM Institute of Technology
       </p>
       <p style={{ marginTop: 6 }}>Women Only Hackathon · 18-Hour Challenge 🎀</p>
     </footer>
