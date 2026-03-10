@@ -193,7 +193,7 @@ body::before {
   display: flex;
   width: max-content;
   white-space: nowrap;
-  animation: tickerScroll 70s linear infinite;
+  animation: tickerScroll 100s linear infinite;
 }
 
 .ticker-item {
