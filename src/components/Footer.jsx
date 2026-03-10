@@ -1,0 +1,12 @@
+/** src/components/Footer.jsx */
+export default function Footer() {
+  return (
+    <footer className="site-footer">
+      <p>
+        © 2026 <strong>Her-a-thon</strong> · Organised by{' '}
+        <strong>Finite Loop Club &amp; HerQuest</strong> · NMAM Institute of Technology
+      </p>
+      <p style={{ marginTop: 6 }}>Women Only Hackathon · 18-Hour Challenge 🎀</p>
+    </footer>
+  );
+}
