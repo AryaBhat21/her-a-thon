@@ -8,8 +8,9 @@ const ITEMS = [
 ];
 
 export default function Ticker() {
-  // Duplicate for seamless infinite scroll
-  const all = [...ITEMS, ...ITEMS];
+  // Duplicate multiple times to ensure the banner is wider than the screen
+  // Must be an even number of sets so that translateX(-50%) creates a seamless loop
+  const all = Array(10).fill(ITEMS).flat();
   return (
     <div className="ticker-wrap">
       <div className="ticker-track">
