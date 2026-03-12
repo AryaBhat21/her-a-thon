@@ -31,6 +31,7 @@ const TIMER_PATH    = 'herathon_timer';
 
 const DEFAULT_STATE = {
   status:    'idle',
+  startAt:   null,
   endAt:     null,
   remaining: TOTAL_SECONDS,
   totalSecs: TOTAL_SECONDS,
@@ -42,6 +43,7 @@ export function useTimer() {
 
   // Local display value — ticks every second without hitting Firebase
   const [displayRemaining, setDisplayRemaining] = useState(TOTAL_SECONDS);
+  const [displayStatus, setDisplayStatus]       = useState('idle');
 
   const tickRef = useRef(null);
 
@@ -59,26 +61,33 @@ export function useTimer() {
   useEffect(() => {
     if (tickRef.current) clearInterval(tickRef.current);
 
-    if (fbState.status === 'running' && fbState.endAt) {
-      const calcRemaining = () =>
-        Math.max(0, Math.round((fbState.endAt - Date.now()) / 1000));
+    const checkState = () => {
+      const now = Date.now();
+      if (fbState.status === 'running' && fbState.endAt) {
+        if (fbState.startAt && now < fbState.startAt) {
+          setDisplayStatus('scheduled');
+          // count down to start time instead of total timer duration
+          setDisplayRemaining(Math.max(0, Math.round((fbState.startAt - now) / 1000)));
+        } else {
+          setDisplayStatus('running');
+          const rem = Math.max(0, Math.round((fbState.endAt - now) / 1000));
+          setDisplayRemaining(rem);
 
-      // Set immediately so display doesn't lag on first render
-      setDisplayRemaining(calcRemaining());
-
-      tickRef.current = setInterval(() => {
-        const rem = calcRemaining();
-        setDisplayRemaining(rem);
-
-        // If we hit zero, write "ended" to Firebase so all clients see it
-        if (rem <= 0) {
-          clearInterval(tickRef.current);
-          set(ref(db, TIMER_PATH), { status: 'ended', endAt: null, remaining: 0 });
+          if (rem <= 0) {
+            clearInterval(tickRef.current);
+            set(ref(db, TIMER_PATH), { ...fbState, status: 'ended', remaining: 0 });
+          }
         }
-      }, 1000);
+      } else {
+        setDisplayStatus(fbState.status ?? 'idle');
+        setDisplayRemaining(fbState.remaining ?? fbState.totalSecs ?? TOTAL_SECONDS);
+      }
+    };
 
-    } else {
-      setDisplayRemaining(fbState.remaining ?? TOTAL_SECONDS);
+    checkState();
+
+    if (fbState.status === 'running') {
+      tickRef.current = setInterval(checkState, 1000);
     }
 
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
@@ -88,33 +97,46 @@ export function useTimer() {
   const writeState = useCallback((newState) =>
     set(ref(db, TIMER_PATH), newState), []);
 
-  const startTimer = useCallback((customSecs) => {
-    // If paused: resume from where it left off. Otherwise: use customSecs or previous total or fresh 18h.
+  const startTimer = useCallback((customStartMs, customEndMs) => {
+    if (customStartMs && customEndMs) {
+      const activeTotal = Math.max(0, Math.round((customEndMs - customStartMs) / 1000));
+      return writeState({
+        status:    'running',
+        startAt:   customStartMs,
+        endAt:     customEndMs,
+        remaining: activeTotal,
+        totalSecs: activeTotal > 0 ? activeTotal : TOTAL_SECONDS,
+      });
+    }
+
     const isPaused = fbState.status === 'paused';
+    const customSecs = typeof customStartMs === 'number' ? customStartMs : 0;
     const activeTotal = customSecs || fbState.totalSecs || TOTAL_SECONDS;
     const secs = isPaused ? (fbState.remaining ?? activeTotal) : activeTotal;
     
     return writeState({
       status:    'running',
+      startAt:   Date.now(),
       endAt:     Date.now() + secs * 1000,
       remaining: secs,
-      totalSecs: activeTotal,
+      totalSecs: activeTotal > 0 ? activeTotal : TOTAL_SECONDS,
     });
   }, [fbState, writeState]);
 
   const pauseTimer = useCallback(() => {
     if (fbState.status !== 'running') return;
     const rem = Math.max(0, Math.round((fbState.endAt - Date.now()) / 1000));
-    return writeState({ status: 'paused', endAt: null, remaining: rem, totalSecs: fbState.totalSecs || TOTAL_SECONDS });
+    return writeState({ status: 'paused', startAt: null, endAt: null, remaining: rem, totalSecs: fbState.totalSecs || TOTAL_SECONDS });
   }, [fbState, writeState]);
 
   const stopTimer = useCallback(() =>
-    writeState({ status: 'ended', endAt: null, remaining: 0, totalSecs: fbState.totalSecs || TOTAL_SECONDS }), [fbState.totalSecs, writeState]);
+    writeState({ status: 'ended', startAt: null, endAt: null, remaining: 0, totalSecs: fbState.totalSecs || TOTAL_SECONDS }), [fbState.totalSecs, writeState]);
 
   const resetTimer = useCallback((customSecs) => {
     const secs = customSecs || TOTAL_SECONDS;
     return writeState({
       status: 'idle',
+      startAt: null,
       endAt: null,
       remaining: secs,
       totalSecs: secs,
@@ -122,7 +144,7 @@ export function useTimer() {
   }, [writeState]);
 
   return {
-    status:     fbState.status,
+    status:     displayStatus,
     remaining:  displayRemaining,
     totalSecs:  fbState.totalSecs || TOTAL_SECONDS,
     startTimer,

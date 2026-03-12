@@ -22,8 +22,8 @@ export default function AdminDrawer({ open, onClose }) {
   const [loggedIn,  setLoggedIn]  = useState(false);
   const [password,  setPassword]  = useState('');
   const [error,     setError]     = useState(false);
-  const [customH,   setCustomH]   = useState('');
-  const [customM,   setCustomM]   = useState('');
+  const [startDateTime, setStartDateTime] = useState('');
+  const [targetDateTime, setTargetDateTime] = useState('');
   const pwdRef = useRef(null);
 
   const { status, startTimer, pauseTimer, stopTimer, resetTimer } = useTimerContext();
@@ -63,10 +63,11 @@ export default function AdminDrawer({ open, onClose }) {
   }
 
   const statusMap = {
-    idle:    '⏳ Not Started',
-    running: '🟢 Running',
-    paused:  '⏸ Paused',
-    ended:   '🏁 Ended',
+    idle:      '⏳ Not Started',
+    scheduled: '⏳ Scheduled',
+    running:   '🟢 Running',
+    paused:    '⏸ Paused',
+    ended:     '🏁 Ended',
   };
 
   return (
@@ -119,34 +120,33 @@ export default function AdminDrawer({ open, onClose }) {
             </div>
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label>Custom Time (Optional)</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="Hours (e.g. 18)"
-                  min="0"
-                  value={customH}
-                  onChange={e => setCustomH(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <input
-                  type="number"
-                  placeholder="Mins"
-                  min="0"
-                  max="59"
-                  value={customM}
-                  onChange={e => setCustomM(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-              </div>
+              <label>Start Date &amp; Time (Optional)</label>
+              <input
+                type="datetime-local"
+                value={startDateTime}
+                onChange={e => setStartDateTime(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', marginBottom: '10px' }}
+              />               
+              <label>Target Date &amp; Time (Optional)</label>
+              <input
+                type="datetime-local"
+                value={targetDateTime}
+                onChange={e => setTargetDateTime(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              />
             </div>
 
             <div className="admin-controls">
               <button
                 className="admin-btn btn-start"
                 onClick={() => {
-                  const customSecs = (parseInt(customH, 10) || 0) * 3600 + (parseInt(customM, 10) || 0) * 60;
-                  startTimer(customSecs > 0 ? customSecs : undefined);
+                  if (startDateTime && targetDateTime) {
+                    startTimer(new Date(startDateTime).getTime(), new Date(targetDateTime).getTime());
+                  } else if (targetDateTime) {
+                    startTimer(Date.now(), new Date(targetDateTime).getTime());
+                  } else {
+                    startTimer();
+                  }
                 }}
                 disabled={status === 'running' || status === 'ended'}
               >
@@ -169,8 +169,9 @@ export default function AdminDrawer({ open, onClose }) {
               <button
                 className="admin-btn btn-reset"
                 onClick={() => {
-                  const customSecs = (parseInt(customH, 10) || 0) * 3600 + (parseInt(customM, 10) || 0) * 60;
-                  resetTimer(customSecs > 0 ? customSecs : undefined);
+                  setStartDateTime('');
+                  setTargetDateTime('');
+                  resetTimer();
                 }}
               >
                 ↺ Reset Timer

@@ -30,10 +30,11 @@ function DigitBox({ value, label }) {
 
 function StatusBadge({ status }) {
   const map = {
-    idle:    { cls: 'waiting', text: '⏳ Waiting for hackathon to begin…' },
-    running: { cls: 'running', text: '🟢 Hackathon is LIVE! Code away!' },
-    paused:  { cls: 'paused',  text: '⏸ Timer paused by admin' },
-    ended:   { cls: 'ended',   text: '🏁 Hackathon ended! Submit your projects!' },
+    idle:      { cls: 'waiting', text: '⏳ Waiting for hackathon to begin…' },
+    scheduled: { cls: 'waiting', text: '⏳ Scheduled! Waiting for start time…' },
+    running:   { cls: 'running', text: '🟢 Hackathon is LIVE! Code away!' },
+    paused:    { cls: 'paused',  text: '⏸ Timer paused by admin' },
+    ended:     { cls: 'ended',   text: '🏁 Hackathon ended! Submit your projects!' },
   };
   const { cls, text } = map[status] || map.idle;
   return <div className={`timer-status ${cls}`}>{text}</div>;
@@ -41,7 +42,7 @@ function StatusBadge({ status }) {
 
 export default function CountdownTimer() {
   const { status, remaining, totalSecs } = useTimerContext();
-  const pct = Math.min(100, ((totalSecs - remaining) / totalSecs) * 100);
+  const pct = status === 'scheduled' ? 0 : Math.min(100, ((totalSecs - remaining) / Math.max(1, totalSecs)) * 100);
   const h   = Math.floor(remaining / 3600);
   const m   = Math.floor((remaining % 3600) / 60);
   const s   = remaining % 60;
@@ -59,7 +60,7 @@ export default function CountdownTimer() {
     <section className="timer-section" id="timer-section">
       <div className="timer-label">Hackathon Countdown</div>
       <h2 className="timer-heading">
-        <span className="clock-icon">🕐</span> Time Remaining
+        <span className="clock-icon">🕐</span> {status === 'scheduled' ? 'Time Until Start' : 'Time Remaining'}
       </h2>
 
       <div className="timer-digits">
